@@ -77,11 +77,8 @@ jobs:
           language: rust
 ```
 
-If you keep `breezy.yml` under `.github/` in the repo, no extra steps are needed. To use a file from `$HOME`, copy it into place before running the action:
+## Prior art
 
-```yml
-- name: Use breezy config
-  run: |
-    mkdir -p "$HOME/.github"
-    cp .github/breezy.yml "$HOME/.github/breezy.yml"
-```
+This action is heavily inspired by [release-drafter](https://github.com/release-drafter/release-drafter). There are a few key differences:
+- `breezy` does not attempt to increment the version number - it reads directly from the appropriate manifest
+- `breezy` creates a single release draft per branch
