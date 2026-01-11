@@ -146,8 +146,7 @@ fn apply_change_template(template: &str, pull_request: &PullRequestInfo) -> Stri
     template
         .replace("$TITLE", &pull_request.title)
         .replace("$AUTHOR", &pull_request.author)
-        .replace("$NUMBER", &pull_request.number.to_string())
-        .replace("$PR_URL", &pull_request.url)
+        .replace("$NUMBER", &pull_request.url)
 }
 
 fn normalized_labels(labels: &[String]) -> HashSet<String> {
@@ -156,4 +155,87 @@ fn normalized_labels(labels: &[String]) -> HashSet<String> {
         .map(|label| label.trim().to_lowercase())
         .filter(|label| !label.is_empty())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{ReleaseCategory, ReleaseConfig};
+
+    fn base_config(with_template: bool) -> ReleaseConfig {
+        ReleaseConfig {
+            language: None,
+            tag_template: None,
+            name_template: None,
+            categories: vec![ReleaseCategory {
+                title: "Features".to_string(),
+                labels: vec!["feature".to_string()],
+            }],
+            exclude_labels: vec!["skip-log".to_string()],
+            change_template: "* $TITLE @$AUTHOR ($NUMBER)".to_string(),
+            template: if with_template {
+                Some("## Changes\n\n$CHANGES".to_string())
+            } else {
+                None
+            },
+        }
+    }
+
+    #[test]
+    fn renders_categories_and_urls() {
+        let config = base_config(true);
+        let marker = release_marker("main");
+        let pull_requests = vec![
+            PullRequestInfo {
+                number: 1,
+                title: "Add login".to_string(),
+                author: "alice".to_string(),
+                labels: vec!["feature".to_string()],
+                url: "https://github.com/o/r/pull/1".to_string(),
+                merged_at: Some("2024-01-01T00:00:00Z".to_string()),
+            },
+            PullRequestInfo {
+                number: 2,
+                title: "Fix bug".to_string(),
+                author: "bob".to_string(),
+                labels: vec!["bug".to_string()],
+                url: "https://github.com/o/r/pull/2".to_string(),
+                merged_at: Some("2024-01-02T00:00:00Z".to_string()),
+            },
+            PullRequestInfo {
+                number: 3,
+                title: "Chore".to_string(),
+                author: "cam".to_string(),
+                labels: vec!["skip-log".to_string()],
+                url: "https://github.com/o/r/pull/3".to_string(),
+                merged_at: Some("2024-01-03T00:00:00Z".to_string()),
+            },
+        ];
+
+        let notes = build_release_notes(&marker, &pull_requests, Some(&config));
+
+        let expected = [
+            marker.as_str(),
+            "",
+            "## Changes",
+            "",
+            "## Features",
+            "* Add login @alice (https://github.com/o/r/pull/1)",
+            "",
+            "## Other Changes",
+            "* Fix bug @bob (https://github.com/o/r/pull/2)",
+        ]
+        .join("\n");
+
+        assert_eq!(notes, expected);
+    }
+
+    #[test]
+    fn returns_marker_when_no_changes() {
+        let config = base_config(false);
+        let marker = release_marker("main");
+        let notes = build_release_notes(&marker, &[], Some(&config));
+
+        assert_eq!(notes, marker);
+    }
 }

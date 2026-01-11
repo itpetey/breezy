@@ -47,7 +47,8 @@ fn run() -> Result<()> {
     let version_info = resolve_version(&cwd, &languages)?;
 
     let tag_name = resolve_tag_name(&version_info.version, &tag_prefix, config.as_ref());
-    let release_name = resolve_release_name(&version_info.version, &tag_name, &branch, config.as_ref());
+    let release_name =
+        resolve_release_name(&version_info.version, &tag_name, &branch, config.as_ref());
     let marker = release_marker(&branch);
 
     let (owner, repo) = parse_repository()?;
