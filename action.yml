@@ -1,5 +1,6 @@
 name: "release-breezy"
 description: "GitHub Action for continuous draft release generation"
+author: itpetey
 inputs:
   language:
     description: Language for version detection
@@ -18,3 +19,6 @@ inputs:
 runs:
   using: "docker"
   image: "Dockerfile"
+branding:
+  color: "gray-dark"
+  icon: "edit"
