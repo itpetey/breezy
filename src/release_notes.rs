@@ -7,6 +7,7 @@ pub struct PullRequestInfo {
     pub title: String,
     pub author: String,
     pub labels: Vec<String>,
+    pub url: String,
     pub merged_at: Option<String>,
 }
 
@@ -146,6 +147,7 @@ fn apply_change_template(template: &str, pull_request: &PullRequestInfo) -> Stri
         .replace("$TITLE", &pull_request.title)
         .replace("$AUTHOR", &pull_request.author)
         .replace("$NUMBER", &pull_request.number.to_string())
+        .replace("$PR_URL", &pull_request.url)
 }
 
 fn normalized_labels(labels: &[String]) -> HashSet<String> {

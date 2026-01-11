@@ -241,6 +241,10 @@ impl GitHubClient {
                         .map(|user| user.login)
                         .unwrap_or_else(|| "unknown".to_string()),
                     labels: item.labels.into_iter().map(|label| label.name).collect(),
+                    url: format!(
+                        "https://github.com/{}/{}/pull/{}",
+                        self.owner, self.repo, item.number
+                    ),
                     merged_at: item.merged_at,
                 }
             }));
