@@ -1,4 +1,4 @@
-name: "breezy"
+name: "release-breezy"
 description: "GitHub Action for continuous draft release generation"
 inputs:
   language:

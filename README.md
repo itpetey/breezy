@@ -1,4 +1,4 @@
-# Breezy
+# Release Breezy
 
 GitHub Action for continuous draft release generation.
 
@@ -58,11 +58,10 @@ Template variables:
 ## Example workflow
 
 ```yml
-name: Breezy
+name: Release Breezy
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 jobs:
   draft:

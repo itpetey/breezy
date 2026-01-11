@@ -1,11 +1,21 @@
 [package]
-name = "breezy"
+name = "release-breezy"
 version = "0.1.0"
 edition = "2024"
+description = "GitHub Action for continuous draft release generation"
+readme = "README.md"
+repository = "https://github.com/itpetey/breezy"
+license = "MIT"
+keywords = ["actions", "draft", "release"]
+categories = ["development-tools"]
+
+[[bin]]
+name = "breezy"
+path = "src/main.rs"
 
 [dependencies]
-anyhow = "1"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+anyhow = "1.0"
+reqwest = { version = "0.13", features = ["blocking", "json", "query"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 serde_yaml = "0.9"
