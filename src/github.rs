@@ -1,7 +1,7 @@
 use crate::release_notes::PullRequestInfo;
 use anyhow::{Context, Result};
 use reqwest::blocking::Client;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, USER_AGENT};
+use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::{Deserialize, Serialize};
 
 const API_BASE: &str = "https://api.github.com";
@@ -66,7 +66,10 @@ pub struct GitHubClient {
 impl GitHubClient {
     pub fn new(token: &str, owner: &str, repo: &str) -> Result<Self> {
         let mut headers = HeaderMap::new();
-        headers.insert(ACCEPT, HeaderValue::from_static("application/vnd.github+json"));
+        headers.insert(
+            ACCEPT,
+            HeaderValue::from_static("application/vnd.github+json"),
+        );
         headers.insert(USER_AGENT, HeaderValue::from_static("breezy"));
         headers.insert(
             "X-GitHub-Api-Version",
@@ -172,10 +175,7 @@ impl GitHubClient {
         body: &str,
         target_commitish: &str,
     ) -> Result<ReleaseInfo> {
-        let url = format!(
-            "{API_BASE}/repos/{}/{}/releases",
-            self.owner, self.repo
-        );
+        let url = format!("{API_BASE}/repos/{}/{}/releases", self.owner, self.repo);
         let payload = ReleaseRequest {
             tag_name,
             name,
@@ -232,15 +232,17 @@ impl GitHubClient {
 
             let data: SearchResponse = response.json()?;
             let count = data.items.len();
-            pull_requests.extend(data.items.into_iter().map(|item| PullRequestInfo {
-                number: item.number,
-                title: item.title,
-                author: item
-                    .user
-                    .map(|user| user.login)
-                    .unwrap_or_else(|| "unknown".to_string()),
-                labels: item.labels.into_iter().map(|label| label.name).collect(),
-                merged_at: item.merged_at,
+            pull_requests.extend(data.items.into_iter().map(|item| {
+                PullRequestInfo {
+                    number: item.number,
+                    title: item.title,
+                    author: item
+                        .user
+                        .map(|user| user.login)
+                        .unwrap_or_else(|| "unknown".to_string()),
+                    labels: item.labels.into_iter().map(|label| label.name).collect(),
+                    merged_at: item.merged_at,
+                }
             }));
 
             if count < per_page as usize {

@@ -3,7 +3,7 @@ mod github;
 mod release_notes;
 mod version;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use config::ReleaseConfig;
 use github::ReleaseInfo;
 use release_notes::{build_release_notes, release_marker};
@@ -25,7 +25,7 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let branch = required_input("branch")?;
+    let branch = resolve_branch()?;
     let tag_prefix = read_input("tag-prefix").unwrap_or_else(|| "v".to_string());
     let token = read_input("github-token")
         .or_else(|| env::var("GITHUB_TOKEN").ok())
@@ -47,7 +47,7 @@ fn run() -> Result<()> {
     let version_info = resolve_version(&cwd, &languages)?;
 
     let tag_name = resolve_tag_name(&version_info.version, &tag_prefix, config.as_ref());
-    let release_name = format!("{tag_name} ({branch})");
+    let release_name = resolve_release_name(&version_info.version, &tag_name, &branch, config.as_ref());
     let marker = release_marker(&branch);
 
     let (owner, repo) = parse_repository()?;
@@ -62,7 +62,12 @@ fn run() -> Result<()> {
     }
 
     let since = select_latest_published_release(&releases, &branch)
-        .map(|release| release.published_at.as_deref().unwrap_or(&release.created_at))
+        .map(|release| {
+            release
+                .published_at
+                .as_deref()
+                .unwrap_or(&release.created_at)
+        })
         .map(|value| value.to_string());
 
     let pull_requests =
@@ -106,15 +111,6 @@ fn read_input(name: &str) -> Option<String> {
     None
 }
 
-fn required_input(name: &str) -> Result<String> {
-    let value = read_input(name).unwrap_or_default();
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        bail!("Missing required input: {name}");
-    }
-    Ok(trimmed.to_string())
-}
-
 fn resolve_language(input: &str, config: Option<&ReleaseConfig>) -> Result<String> {
     if !input.trim().is_empty() {
         return Ok(input.trim().to_string());
@@ -138,9 +134,23 @@ fn resolve_tag_name(version: &str, tag_prefix: &str, config: Option<&ReleaseConf
     format!("{}{}", tag_prefix.trim(), version)
 }
 
+fn resolve_release_name(
+    version: &str,
+    tag_name: &str,
+    branch: &str,
+    config: Option<&ReleaseConfig>,
+) -> String {
+    if let Some(config) = config {
+        if let Some(template) = &config.name_template {
+            return template.replace("$VERSION", version);
+        }
+    }
+    format!("{tag_name} ({branch})")
+}
+
 fn parse_repository() -> Result<(String, String)> {
-    let repository = env::var("GITHUB_REPOSITORY")
-        .context("Missing GITHUB_REPOSITORY environment variable.")?;
+    let repository =
+        env::var("GITHUB_REPOSITORY").context("Missing GITHUB_REPOSITORY environment variable.")?;
     let mut parts = repository.splitn(2, '/');
     let owner = parts.next().unwrap_or_default();
     let repo = parts.next().unwrap_or_default();
@@ -153,12 +163,43 @@ fn parse_repository() -> Result<(String, String)> {
     Ok((owner.to_string(), repo.to_string()))
 }
 
+fn resolve_branch() -> Result<String> {
+    if let Ok(value) = env::var("GITHUB_HEAD_REF") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return Ok(trimmed.to_string());
+        }
+    }
+
+    if let Ok(value) = env::var("GITHUB_REF_NAME") {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return Ok(trimmed.to_string());
+        }
+    }
+
+    if let Ok(value) = env::var("GITHUB_REF") {
+        let trimmed = value.trim();
+        if let Some(stripped) = trimmed.strip_prefix("refs/heads/") {
+            return Ok(stripped.to_string());
+        }
+        if trimmed.starts_with("refs/pull/") {
+            if let Ok(head) = env::var("GITHUB_HEAD_REF") {
+                let head = head.trim();
+                if !head.is_empty() {
+                    return Ok(head.to_string());
+                }
+            }
+        }
+    }
+
+    bail!("Unable to determine branch name from GitHub environment.");
+}
+
 fn select_draft_releases(releases: &[ReleaseInfo], marker: &str) -> DraftSelection {
     let mut drafts: Vec<&ReleaseInfo> = releases
         .iter()
-        .filter(|release| {
-            release.draft && release.body.as_deref().unwrap_or("").contains(marker)
-        })
+        .filter(|release| release.draft && release.body.as_deref().unwrap_or("").contains(marker))
         .collect();
 
     drafts.sort_by(|left, right| right.created_at.cmp(&left.created_at));
@@ -184,10 +225,7 @@ fn select_latest_published_release<'a>(
 
     published.sort_by(|left, right| {
         let left_key = left.published_at.as_deref().unwrap_or(&left.created_at);
-        let right_key = right
-            .published_at
-            .as_deref()
-            .unwrap_or(&right.created_at);
+        let right_key = right.published_at.as_deref().unwrap_or(&right.created_at);
         right_key.cmp(left_key)
     });
 

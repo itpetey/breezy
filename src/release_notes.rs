@@ -84,10 +84,7 @@ fn build_changes(pull_requests: &[PullRequestInfo], config: &ReleaseConfig) -> S
                     continue;
                 }
                 categorized.insert(pull_request.number);
-                category_lines.push(apply_change_template(
-                    &config.change_template,
-                    pull_request,
-                ));
+                category_lines.push(apply_change_template(&config.change_template, pull_request));
             }
             if !category_lines.is_empty() {
                 lines.push(format!("## {}", category.title));
@@ -105,10 +102,7 @@ fn build_changes(pull_requests: &[PullRequestInfo], config: &ReleaseConfig) -> S
         if is_excluded(pull_request, config) {
             continue;
         }
-        uncategorized.push(apply_change_template(
-            &config.change_template,
-            pull_request,
-        ));
+        uncategorized.push(apply_change_template(&config.change_template, pull_request));
     }
 
     if !uncategorized.is_empty() {

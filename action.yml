@@ -1,10 +1,6 @@
 name: "breezy"
 description: "GitHub Action for continuous draft release generation"
 inputs:
-  branch:
-    description: The branch to generate release drafts from
-    required: true
-    default: main
   language:
     description: Language for version detection
     required: false

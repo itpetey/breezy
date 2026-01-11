@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -15,6 +15,7 @@ pub struct ReleaseCategory {
 pub struct ReleaseConfig {
     pub language: Option<String>,
     pub tag_template: Option<String>,
+    pub name_template: Option<String>,
     pub categories: Vec<ReleaseCategory>,
     pub exclude_labels: Vec<String>,
     pub change_template: String,
@@ -26,6 +27,8 @@ struct RawConfig {
     language: Option<String>,
     #[serde(rename = "tag-template")]
     tag_template: Option<String>,
+    #[serde(rename = "name-template")]
+    name_template: Option<String>,
     categories: Option<Vec<RawCategory>>,
     #[serde(rename = "exclude-labels")]
     exclude_labels: Option<Vec<String>>,
@@ -65,6 +68,7 @@ impl ReleaseConfig {
         ReleaseConfig {
             language: raw.language.map(|value| value.trim().to_lowercase()),
             tag_template: raw.tag_template.map(|value| value.trim().to_string()),
+            name_template: raw.name_template.map(|value| value.trim().to_string()),
             categories,
             exclude_labels: normalize_labels(raw.exclude_labels.unwrap_or_default()),
             change_template: raw
@@ -122,8 +126,8 @@ fn resolve_path(input: &str, cwd: &Path) -> Result<PathBuf> {
 fn read_config(path: &Path) -> Result<ReleaseConfig> {
     let content = fs::read_to_string(path)
         .with_context(|| format!("Failed to read config file {}", path.display()))?;
-    let raw: RawConfig = serde_yaml::from_str(&content)
-        .map_err(|error| anyhow!("Invalid config YAML: {error}"))?;
+    let raw: RawConfig =
+        serde_yaml::from_str(&content).map_err(|error| anyhow!("Invalid config YAML: {error}"))?;
     Ok(ReleaseConfig::from_raw(raw))
 }
 
