@@ -258,16 +258,14 @@ fn resolve_branch() -> Result<String> {
 }
 
 fn resolve_current_sha() -> Option<String> {
-    env::var("GITHUB_SHA")
-        .ok()
-        .and_then(|value| {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
-        })
+    env::var("GITHUB_SHA").ok().and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
 }
 
 fn resolve_directory(input: Option<String>) -> Result<Option<String>> {
