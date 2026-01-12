@@ -8,6 +8,42 @@ pub struct VersionInfo {
     pub version: String,
 }
 
+pub fn is_prerelease_version(version: &str) -> bool {
+    let trimmed = version.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+
+    let core = trimmed.splitn(2, '+').next().unwrap_or("");
+    let mut core_parts = core.splitn(2, '-');
+    let core_version = core_parts.next().unwrap_or("");
+    let prerelease = core_parts.next().unwrap_or("");
+    if prerelease.is_empty() {
+        return false;
+    }
+
+    let mut numeric_parts = core_version.split('.');
+    let major = numeric_parts.next().unwrap_or("");
+    let minor = numeric_parts.next().unwrap_or("");
+    let patch = numeric_parts.next().unwrap_or("");
+    if major.is_empty()
+        || minor.is_empty()
+        || patch.is_empty()
+        || numeric_parts.next().is_some()
+    {
+        return false;
+    }
+
+    if !major.chars().all(|c| c.is_ascii_digit())
+        || !minor.chars().all(|c| c.is_ascii_digit())
+        || !patch.chars().all(|c| c.is_ascii_digit())
+    {
+        return false;
+    }
+
+    true
+}
+
 fn parse_cargo_version(content: &str) -> Option<String> {
     let mut in_package = false;
     let mut in_workspace_package = false;
@@ -131,7 +167,7 @@ pub fn resolve_version(cwd: &Path, languages: &[String]) -> Result<VersionInfo> 
 
 #[cfg(test)]
 mod tests {
-    use super::parse_cargo_version;
+    use super::{is_prerelease_version, parse_cargo_version};
 
     #[test]
     fn parse_package_version() {
@@ -172,5 +208,15 @@ name = "demo"
 version = "3.1.4"
 "#;
         assert_eq!(parse_cargo_version(content), Some("3.1.4".to_string()));
+    }
+
+    #[test]
+    fn prerelease_detection() {
+        assert!(is_prerelease_version("0.1.0-a.1"));
+        assert!(is_prerelease_version("5.9.0-beta.3"));
+        assert!(is_prerelease_version("1.2.3-rc.1+build.7"));
+        assert!(!is_prerelease_version("1.2.3"));
+        assert!(!is_prerelease_version("1.2.3+build.7"));
+        assert!(!is_prerelease_version("1.2"));
     }
 }

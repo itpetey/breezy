@@ -46,6 +46,7 @@ struct ReleaseRequest<'a> {
     name: &'a str,
     body: &'a str,
     draft: bool,
+    prerelease: bool,
     target_commitish: &'a str,
 }
 
@@ -143,6 +144,7 @@ impl GitHubClient {
         tag_name: &str,
         name: &str,
         body: &str,
+        prerelease: bool,
         target_commitish: &str,
     ) -> Result<ReleaseInfo> {
         let url = format!(
@@ -154,6 +156,7 @@ impl GitHubClient {
             name,
             body,
             draft: true,
+            prerelease,
             target_commitish,
         };
         let response = self
@@ -173,6 +176,7 @@ impl GitHubClient {
         tag_name: &str,
         name: &str,
         body: &str,
+        prerelease: bool,
         target_commitish: &str,
     ) -> Result<ReleaseInfo> {
         let url = format!("{API_BASE}/repos/{}/{}/releases", self.owner, self.repo);
@@ -181,6 +185,7 @@ impl GitHubClient {
             name,
             body,
             draft: true,
+            prerelease,
             target_commitish,
         };
         let response = self

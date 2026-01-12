@@ -8,7 +8,7 @@ use config::ReleaseConfig;
 use github::ReleaseInfo;
 use release_notes::{build_release_notes, release_marker};
 use std::env;
-use version::{parse_languages, resolve_version};
+use version::{is_prerelease_version, parse_languages, resolve_version};
 
 const MAX_PER_PAGE: u32 = 100;
 
@@ -50,6 +50,7 @@ fn run() -> Result<()> {
     let release_name =
         resolve_release_name(&version_info.version, &tag_name, &branch, config.as_ref());
     let marker = release_marker(&branch);
+    let prerelease = is_prerelease_version(&version_info.version);
 
     let (owner, repo) = parse_repository()?;
     let client = github::GitHubClient::new(&token, &owner, &repo)?;
@@ -81,11 +82,18 @@ fn run() -> Result<()> {
             &tag_name,
             &release_name,
             &release_notes,
+            prerelease,
             &branch,
         )?;
         println!("Updated draft release {release_id} for {branch}");
     } else {
-        client.create_release(&tag_name, &release_name, &release_notes, &branch)?;
+        client.create_release(
+            &tag_name,
+            &release_name,
+            &release_notes,
+            prerelease,
+            &branch,
+        )?;
         println!("Created draft release for {branch}");
     }
 
